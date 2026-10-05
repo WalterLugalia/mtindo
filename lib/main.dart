@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mtindo_app/features/auth/screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/config/env_config.dart';
@@ -10,7 +11,7 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: EnvConfig.supabaseUrl,
-    publishableKey: EnvConfig.supabaseAnonKey,
+    anonKey: EnvConfig.supabaseAnonKey,
   );
 
   await Hive.initFlutter();
@@ -30,7 +31,7 @@ class MtindoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mtindo',
       theme: AppTheme.light,
-      home: const _ThemePreviewScreen(),
+      home: const LoginScreen()
     );
   }
 }

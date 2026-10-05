@@ -3,6 +3,9 @@ import 'exceptions.dart';
 sealed class Failure {
   final String message;
   const Failure(this.message);
+  
+  @override
+  String toString() => message;
 }
 
 class NetworkFailure extends Failure {
@@ -38,4 +41,5 @@ Failure mapExceptionToFailure(Object error) {
     SupabaseException() => const VoteFailure(),
     _ => const UnknownFailure(),
   };
+  
 }
