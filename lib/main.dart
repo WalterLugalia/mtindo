@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/config/env_config.dart';
 import 'app/theme/app_theme.dart';
+import 'features/feed/screens/feed_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +32,7 @@ class MtindoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mtindo',
       theme: AppTheme.light,
-      home: const LoginScreen()
+      home: const FeedScreen()
     );
   }
 }
