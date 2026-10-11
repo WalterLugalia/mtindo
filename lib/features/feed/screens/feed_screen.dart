@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mtindo_app/features/item_detail/screens/item_detail_screen.dart';
 
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
@@ -64,7 +65,11 @@ class FeedScreen extends ConsumerWidget {
                 return ProductCard(
                   product: product,
                   onTap: () {
-                    // Navigation to Item Detail wired in Phase 9.
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ItemDetailScreen(product: product),
+                      ),
+                    );
                   },
                 );
               },

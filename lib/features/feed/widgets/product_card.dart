@@ -1,11 +1,13 @@
+// lib/features/feed/widgets/product_card.dart
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../shared/widgets/product_image.dart';
 import '../models/product.dart';
 
-/// A single product tile shown in the Feed grid. Purely presentational —
+/// A single product tile shown in the Feed grid. Purely presentational:
 /// it receives a Product and an onTap callback, and has no knowledge of
 /// where the data came from or what happens when it's tapped.
 class ProductCard extends StatelessWidget {
@@ -27,6 +29,8 @@ class ProductCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: LayoutBuilder(
           builder: (context, constraints) {
+            // Space reserved for the text block (name, brand, price).
+            // The image gets whatever height is left over.
             const detailsHeight = 112.0;
             final imageHeight = (constraints.maxHeight - detailsHeight)
                 .clamp(0.0, constraints.maxWidth * (4 / 3))
@@ -38,45 +42,7 @@ class ProductCard extends StatelessWidget {
                 SizedBox(
                   width: constraints.maxWidth,
                   height: imageHeight,
-                  child: product.imageUrl.isEmpty
-                      ? Container(
-                          color: AppColors.surfaceMuted,
-                          child: const Icon(
-                            Icons.image_not_supported_outlined,
-                            color: AppColors.textMuted,
-                          ),
-                        )
-                      : Image.network(
-                          product.imageUrl,
-                          fit: BoxFit.cover,
-                          width: constraints.maxWidth,
-                          height: imageHeight,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return Container(
-                              color: AppColors.surfaceMuted,
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: AppColors.surfaceMuted,
-                              child: const Icon(
-                                Icons.broken_image_outlined,
-                                color: AppColors.textMuted,
-                              ),
-                            );
-                          },
-                        ),
+                  child: ProductImage(url: product.imageUrl),
                 ),
                 Flexible(
                   child: Padding(
