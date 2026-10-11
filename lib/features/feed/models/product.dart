@@ -1,6 +1,3 @@
-/// A fashion product, mapped from the ASOS API's product list response.
-/// This is the single model used across feed, detail, and leaderboard —
-/// no separate DTO/entity split, per this project's MVVM pattern.
 class Product {
   final int id;
   final String name;
@@ -12,6 +9,7 @@ class Product {
   final String imageUrl;
   final List<String> additionalImageUrls;
   final String productUrl;
+  final String category;
 
   const Product({
     required this.id,
@@ -24,9 +22,10 @@ class Product {
     required this.imageUrl,
     required this.additionalImageUrls,
     required this.productUrl,
+    required this.category,
   });
 
-  factory Product.fromJson(Map<String, dynamic> json) {
+  factory Product.fromJson(Map<String, dynamic> json, {String category = ''}) {
     final price = json['price'] as Map<String, dynamic>?;
     final current = price?['current'] as Map<String, dynamic>?;
 
@@ -43,20 +42,16 @@ class Product {
           .map((e) => _withScheme(e as String?))
           .toList(),
       productUrl: _asosProductUrl(json['url'] as String?),
+      category: category,
     );
   }
 
-  /// ASOS returns image URLs without a scheme (e.g.
-  /// "images.asos-media.com/...") — prepend https:// so Flutter's
-  /// network image loader can actually use it.
   static String _withScheme(String? url) {
     if (url == null || url.isEmpty) return '';
     if (url.startsWith('http')) return url;
     return 'https://$url';
   }
 
-  /// Product page URLs are relative (e.g. "asos-design/.../prd/123").
-  /// Prefix with ASOS's actual site domain to make a usable link.
   static String _asosProductUrl(String? relativeUrl) {
     if (relativeUrl == null || relativeUrl.isEmpty) return '';
     return 'https://www.asos.com/$relativeUrl';
