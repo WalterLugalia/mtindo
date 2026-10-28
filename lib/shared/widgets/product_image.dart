@@ -1,13 +1,14 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 
-/// Network image with all three failure/loading states handled in one
-/// place: empty URL, still downloading, and failed to load.
+/// Network image with all three states handled in one place: empty URL,
+/// still downloading, and failed to load. Images are saved on disk after
+/// the first load, so they also work offline.
 ///
 /// It has no width or height of its own. It fills whatever space its
-/// parent gives it (a SizedBox, AspectRatio, etc.), so each caller
-/// decides the size.
+/// parent gives it, so each caller decides the size.
 class ProductImage extends StatelessWidget {
   final String url;
   final BoxFit fit;
@@ -20,14 +21,11 @@ class ProductImage extends StatelessWidget {
       return const _ImagePlaceholder(icon: Icons.image_not_supported_outlined);
     }
 
-    return Image.network(
-      url,
+    return CachedNetworkImage(
+      imageUrl: url,
       fit: fit,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return const _ImagePlaceholder(showSpinner: true);
-      },
-      errorBuilder: (context, error, stackTrace) =>
+      placeholder: (context, url) => const _ImagePlaceholder(showSpinner: true),
+      errorWidget: (context, url, error) =>
           const _ImagePlaceholder(icon: Icons.broken_image_outlined),
     );
   }

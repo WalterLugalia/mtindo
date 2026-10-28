@@ -1,12 +1,13 @@
-
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/network_info.dart';
-import '../models/product.dart';
+import '../../../core/storage/hive_service.dart';
+import '../models/feed_result.dart';
 import '../repositories/product_repository.dart';
 import '../services/product_api_service.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import '../services/product_cache_service.dart';
 
 final networkInfoProvider = Provider<NetworkInfo>((ref) {
   return NetworkInfoImpl(Connectivity());
@@ -20,30 +21,41 @@ final productApiServiceProvider = Provider<ProductApiService>((ref) {
   return ProductApiService(ref.watch(apiClientProvider));
 });
 
-final productRepositoryProvider = Provider<ProductRepository>((ref) {
-  return ProductRepository(ref.watch(productApiServiceProvider));
+/// The one place that reaches for the open Hive box, mirroring how
+/// authServiceProvider is the only place that touches Supabase.
+final productCacheServiceProvider = Provider<ProductCacheService>((ref) {
+  return ProductCacheService(HiveService.productCacheBox);
 });
 
-/// Holds the fetched feed. AsyncNotifier gives us loading/error/data
-/// states automatically via AsyncValue.
-final feedProvider = AsyncNotifierProvider<FeedController, List<Product>>(
+final productRepositoryProvider = Provider<ProductRepository>((ref) {
+  return ProductRepository(
+    ref.watch(productApiServiceProvider),
+    ref.watch(productCacheServiceProvider),
+  );
+});
+
+/// Holds the feed and its loading, error, and data states. The data is now
+/// a FeedResult (products + where they came from), not a bare list.
+final feedProvider = AsyncNotifierProvider<FeedController, FeedResult>(
   FeedController.new,
 );
 
-class FeedController extends AsyncNotifier<List<Product>> {
-  // ASOS category ID for "Shoes, Boots & Sneakers" — the category we
-  // tested against. Swap this for whatever category fits the app.
+class FeedController extends AsyncNotifier<FeedResult> {
   static const String _categoryId = '4209';
 
   @override
-  Future<List<Product>> build() {
-    return ref.read(productRepositoryProvider).getProducts(categoryId: _categoryId);
+  Future<FeedResult> build() {
+    return ref.read(productRepositoryProvider).getProducts(
+          categoryId: _categoryId,
+        );
   }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(productRepositoryProvider).getProducts(categoryId: _categoryId),
+      () => ref.read(productRepositoryProvider).getProducts(
+            categoryId: _categoryId,
+          ),
     );
   }
 }
