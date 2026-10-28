@@ -74,7 +74,7 @@ class ItemDetailScreen extends StatelessWidget {
                 const Divider(),
               ],
               const SizedBox(height: AppSpacing.md),
-              const VoteSection(),
+              VoteSection(productId: product.id),
             ],
           ),
         ),

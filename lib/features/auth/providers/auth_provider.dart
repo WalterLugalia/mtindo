@@ -7,8 +7,8 @@ import '../models/app_user.dart';
 import '../repositories/auth_repository.dart';
 import '../services/auth_service.dart';
 
-/// The one place allowed to reach for the raw Supabase singleton —
-/// everything above this only ever sees AuthService/AuthRepository.
+/// The one place allowed to reach for the raw Supabase singleton.
+/// Everything above this only ever sees AuthService/AuthRepository.
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(Supabase.instance.client);
 });
@@ -17,23 +17,30 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(ref.watch(authServiceProvider));
 });
 
-/// Exposes the current session as a stream, so the UI reacts
-/// automatically to sign-in/sign-out, not just at app launch.
+/// Exposes the session as a stream, so the UI reacts automatically
+/// to sign-in and sign-out, not just at app launch.
 final authStateProvider = StreamProvider<AppUser?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
-/// Holds the in-progress state of a sign-in/sign-up/sign-out action
-/// itself (loading, error) — separate from authStateProvider, which
-/// just reflects "who is currently logged in."
+/// The signed-in user right now, or null. Other providers watch this
+/// instead of reaching into the auth repository themselves.
+final currentUserProvider = Provider<AppUser?>((ref) {
+  // Watched only to trigger a rebuild when someone signs in or out.
+  // The value itself comes from the synchronous getter below.
+  ref.watch(authStateProvider);
+  return ref.read(authRepositoryProvider).currentUser;
+});
+
+/// Tracks the in-progress state of a sign-in, sign-up, or sign-out
+/// action itself (loading, error), separate from the session above.
 final authControllerProvider =
     AsyncNotifierProvider<AuthController, void>(AuthController.new);
 
 class AuthController extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() {
-    // No initial action; this just tracks the state of the last
-    // sign-in/sign-up/sign-out attempt.
+    // No initial action. This only tracks the last attempt.
   }
 
   Future<void> signIn({required String email, required String password}) async {
