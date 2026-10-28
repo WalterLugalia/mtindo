@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mtindo_app/core/storage/hive_service.dart';
 import 'package:mtindo_app/features/auth/screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -15,7 +16,7 @@ Future<void> main() async {
     anonKey: EnvConfig.supabaseAnonKey,
   );
 
-  await Hive.initFlutter();
+   await HiveService.init();
 
   runApp(
     const ProviderScope(

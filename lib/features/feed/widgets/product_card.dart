@@ -1,4 +1,3 @@
-// lib/features/feed/widgets/product_card.dart
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -8,13 +7,19 @@ import '../../../shared/widgets/product_image.dart';
 import '../models/product.dart';
 
 /// A single product tile shown in the Feed grid. Purely presentational:
-/// it receives a Product and an onTap callback, and has no knowledge of
-/// where the data came from or what happens when it's tapped.
+/// it receives a Product, an onTap callback, and whether to show the
+/// "May be outdated" badge. It doesn't know where any of that came from.
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
+  final bool showOutdatedBadge;
 
-  const ProductCard({super.key, required this.product, required this.onTap});
+  const ProductCard({
+    super.key,
+    required this.product,
+    required this.onTap,
+    this.showOutdatedBadge = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +47,18 @@ class ProductCard extends StatelessWidget {
                 SizedBox(
                   width: constraints.maxWidth,
                   height: imageHeight,
-                  child: ProductImage(url: product.imageUrl),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ProductImage(url: product.imageUrl),
+                      if (showOutdatedBadge)
+                        const Positioned(
+                          left: AppSpacing.sm,
+                          bottom: AppSpacing.sm,
+                          child: _OutdatedBadge(),
+                        ),
+                    ],
+                  ),
                 ),
                 Flexible(
                   child: Padding(
@@ -84,6 +100,30 @@ class ProductCard extends StatelessWidget {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// The small white pill from the mockup, shown over the image when the
+/// feed is a saved copy older than the stale window.
+class _OutdatedBadge extends StatelessWidget {
+  const _OutdatedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      ),
+      child: Text(
+        'May be outdated',
+        style: AppTextStyles.caption.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

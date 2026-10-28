@@ -25,6 +25,7 @@ class Product {
     required this.category,
   });
 
+  /// Builds a Product from ONE item of the ASOS API response.
   factory Product.fromJson(Map<String, dynamic> json, {String category = ''}) {
     final price = json['price'] as Map<String, dynamic>?;
     final current = price?['current'] as Map<String, dynamic>?;
@@ -44,6 +45,42 @@ class Product {
       productUrl: _asosProductUrl(json['url'] as String?),
       category: category,
     );
+  }
+
+  /// Rebuilds a Product from OUR OWN saved format (the output of toMap).
+  factory Product.fromMap(Map<String, dynamic> map) {
+    return Product(
+      id: map['id'] as int,
+      name: (map['name'] as String?) ?? 'Unnamed item',
+      brandName: (map['brandName'] as String?) ?? '',
+      colour: (map['colour'] as String?) ?? '',
+      priceValue: (map['priceValue'] as num?)?.toDouble(),
+      priceDisplay: (map['priceDisplay'] as String?) ?? '',
+      currency: (map['currency'] as String?) ?? 'USD',
+      imageUrl: (map['imageUrl'] as String?) ?? '',
+      additionalImageUrls: ((map['additionalImageUrls'] as List?) ?? [])
+          .map((e) => e as String)
+          .toList(),
+      productUrl: (map['productUrl'] as String?) ?? '',
+      category: (map['category'] as String?) ?? '',
+    );
+  }
+
+  /// Flattens this Product into plain JSON-friendly values for saving.
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'brandName': brandName,
+      'colour': colour,
+      'priceValue': priceValue,
+      'priceDisplay': priceDisplay,
+      'currency': currency,
+      'imageUrl': imageUrl,
+      'additionalImageUrls': additionalImageUrls,
+      'productUrl': productUrl,
+      'category': category,
+    };
   }
 
   static String _withScheme(String? url) {
