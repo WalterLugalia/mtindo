@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +8,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../voting/providers/vote_provider.dart';
+import '../../voting/repositories/vote_repository.dart';
 
 /// The white card at the bottom of the detail screen: the community vote
 /// count on the left, the Vote button on the right.
@@ -19,28 +19,7 @@ class VoteSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Show a failed vote (for example "already voted") as a snackbar.
-    ref.listen<AsyncValue<void>>(voteActionProvider, (previous, next) {
-      if (next.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error.toString())),
-        );
-      }
-    });
-
-    final countText = ref.watch(voteCountProvider(productId)).when(
-          data: (count) => '$count',
-          loading: () => '-',
-          error: (_, __) => '-',
-        );
-
-    final hasVoted = ref.watch(hasVotedProvider(productId)).when(
-          data: (voted) => voted,
-          loading: () => false,
-          error: (_, __) => false,
-        );
-
-    final isSubmitting = ref.watch(voteActionProvider).isLoading;
+    final display = ref.watch(voteDisplayProvider(productId));
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -48,34 +27,47 @@ class VoteSection extends ConsumerWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                countText,
-                style: AppTextStyles.headlineLarge.copyWith(fontSize: 28),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    display.count?.toString() ?? '-',
+                    style: AppTextStyles.headlineLarge.copyWith(fontSize: 28),
+                  ),
+                  Text('community votes', style: AppTextStyles.bodyMedium),
+                ],
               ),
-              Text('community votes', style: AppTextStyles.bodyMedium),
+              const Spacer(),
+              SizedBox(
+                width: 140,
+                child: AppButton(
+                  label: display.hasVoted ? 'Voted' : 'Vote',
+                  icon: display.hasVoted
+                      ? Icons.favorite
+                      : Icons.favorite_border,
+                  onPressed: () => _onVotePressed(context, ref),
+                ),
+              ),
             ],
           ),
-          const Spacer(),
-          SizedBox(
-            width: 140,
-            child: AppButton(
-              label: hasVoted ? 'Voted' : 'Vote',
-              icon: hasVoted ? Icons.favorite : Icons.favorite_border,
-              isLoading: isSubmitting,
-              onPressed: () => _onVotePressed(context, ref),
+          if (display.isQueued) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Saved on this device. It will be sent once you are back online.',
+              style: AppTextStyles.caption,
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  void _onVotePressed(BuildContext context, WidgetRef ref) {
+  Future<void> _onVotePressed(BuildContext context, WidgetRef ref) async {
     final user = ref.read(currentUserProvider);
 
     if (user == null) {
@@ -87,6 +79,23 @@ class VoteSection extends ConsumerWidget {
       return;
     }
 
-    ref.read(voteActionProvider.notifier).toggleVote(productId);
+    // Grab this before the await. Using `context` after an async gap is
+    // unsafe, because the screen may be gone by then.
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final outcome =
+          await ref.read(pendingVotesProvider.notifier).toggleVote(productId);
+
+      if (outcome == VoteOutcome.queued) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Saved. Your vote will be sent once you are back online.'),
+          ),
+        );
+      }
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 }

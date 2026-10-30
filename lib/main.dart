@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mtindo_app/core/storage/hive_service.dart';
 import 'package:mtindo_app/features/auth/screens/login_screen.dart';
+import 'package:mtindo_app/features/voting/providers/vote_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/config/env_config.dart';
@@ -25,11 +26,17 @@ Future<void> main() async {
   );
 }
 
-class MtindoApp extends StatelessWidget {
+class MtindoApp extends ConsumerWidget {
   const MtindoApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Create the vote queue controller at launch, not on first use, so it
+    // can send queued votes as soon as the app opens or a connection
+    // returns. `read` (not `watch`) because nothing here needs to rebuild
+    // when its state changes.
+    ref.read(pendingVotesProvider);
+
     return MaterialApp(
       title: 'Mtindo',
       theme: AppTheme.light,
