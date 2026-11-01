@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_loader.dart';
 import '../../item_detail/screens/item_detail_screen.dart';
 import '../providers/feed_provider.dart';
 import '../widgets/product_card.dart';
+import '../../leaderboard/screens/leaderboard_screen.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -25,7 +26,20 @@ class FeedScreen extends ConsumerWidget {
         feedState.whenOrNull(data: (result) => result.isFromCache) ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Mtindo', style: AppTextStyles.brandWordmark)),
+      appBar: AppBar(
+  title: Text('Mtindo', style: AppTextStyles.brandWordmark),
+  actions: [
+    IconButton(
+      tooltip: 'Top voted',
+      icon: const Icon(Icons.emoji_events_outlined),
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+        );
+      },
+    ),
+  ],
+),
       body: Column(
         children: [
           if (showCachedBanner) const _CachedBanner(),
