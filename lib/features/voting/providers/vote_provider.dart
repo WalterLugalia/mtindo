@@ -1,3 +1,4 @@
+// lib/features/voting/providers/vote_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mtindo_app/features/feed/models/pending_vote.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
@@ -97,7 +98,16 @@ class PendingVotesController extends Notifier<Map<int, PendingVote>> {
 
     final previous = state[productId];
     try {
-      final wantsVote = !ref.read(voteDisplayProvider(productId)).hasVoted;
+      // What the button shows right now, worked out from its two sources
+      // directly (not through voteDisplayProvider, which is built FROM
+      // this controller's state and would create a circular dependency):
+      //   1. the user's own unconfirmed choice, if there is one;
+      //   2. otherwise the last answer the server gave.
+      // valueOrNull is the last known value, or null if there isn't one.
+      final serverVoted = ref.read(hasVotedProvider(productId)).value ?? false;
+      final currentlyVoted = previous?.wantsVote ?? serverVoted;
+      final wantsVote = !currentlyVoted;
+
       final vote = PendingVote(
         productId: productId,
         userId: user.id,
@@ -194,6 +204,9 @@ class VoteDisplay {
   });
 }
 
+/// Read-only and derived: it combines the providers above and nothing
+/// may depend on it except screens. If a controller ever needs this
+/// information, it should read the sources itself, as toggleVote does.
 final voteDisplayProvider = Provider.family<VoteDisplay, int>((ref, productId) {
   final serverCount = _lastKnown(ref.watch(voteCountProvider(productId)));
   final serverVoted = _lastKnown(ref.watch(hasVotedProvider(productId)));
