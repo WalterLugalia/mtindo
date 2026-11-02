@@ -5,9 +5,8 @@ import '../models/product.dart';
 import '../services/product_api_service.dart';
 import '../services/product_cache_service.dart';
 
-/// Decides where the feed comes from: the API when possible, the saved
-/// copy when not. This is the class the Phase 4 plan was reserving for
-/// this job: it coordinates two data sources so nothing above it has to.
+/// Decides where product data comes from: the API when possible, the
+/// saved copy when not.
 class ProductRepository {
   final ProductApiService _apiService;
   final ProductCacheService _cacheService;
@@ -38,6 +37,24 @@ class ProductRepository {
       // No saved copy either, so this is a real error for the user.
       throw mapExceptionToFailure(error);
     }
+  }
+
+  /// Looks up products by ID among those this device has loaded before.
+  /// IDs this device has never seen are simply missing from the result.
+  ///
+  /// It is async even though today it only reads the local index. Callers
+  /// already await it, so a later phase can add an API lookup for the
+  /// missing IDs without changing any caller.
+  Future<Map<int, Product>> findProducts(Iterable<int> ids) async {
+    final known = _cacheService.readKnownProducts();
+    final found = <int, Product>{};
+
+    for (final id in ids) {
+      final product = known[id];
+      if (product != null) found[id] = product;
+    }
+
+    return found;
   }
 
   /// Saving is best effort. A cache that can't be written must never

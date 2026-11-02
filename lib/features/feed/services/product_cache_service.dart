@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -15,15 +14,15 @@ class CachedProducts {
   const CachedProducts({required this.products, required this.savedAt});
 }
 
-/// Saves and reads the product list in Hive.
-///
-/// Like the API service, it knows nothing about screens or providers. It
-/// takes products in and hands products back. Deciding when to use the
-/// cache is the repository's job.
+/// Saves and reads products in Hive. It stores and fetches only;
+/// deciding when to use the cache is the repository's job.
 class ProductCacheService {
   final Box _box;
 
   ProductCacheService(this._box);
+
+  /// The known-products index never grows past this many entries.
+  static const int _maxKnownProducts = 300;
 
   String _productsKey(String categoryId) =>
       '${StorageConstants.cachedProductsKey}_$categoryId';
@@ -39,6 +38,7 @@ class ProductCacheService {
         _timestampKey(categoryId),
         DateTime.now().millisecondsSinceEpoch,
       );
+      await _rememberProducts(products);
     } catch (_) {
       throw const CacheException('Could not save products locally.');
     }
@@ -61,6 +61,56 @@ class ProductCacheService {
       );
     } catch (_) {
       throw const CacheException('Saved products could not be read.');
+    }
+  }
+
+  /// Every product this device has ever loaded, by ID. Unlike the feed
+  /// cache (replaced on each fetch), this index keeps products that later
+  /// drop out of the feed, so the leaderboard can still describe them.
+  /// Never throws: "nothing known" is an acceptable answer.
+  Map<int, Product> readKnownProducts() {
+    final known = <int, Product>{};
+
+    for (final entry in _readKnownMaps().entries) {
+      try {
+        known[int.parse(entry.key)] =
+            Product.fromMap(entry.value as Map<String, dynamic>);
+      } catch (_) {
+        // Skip a damaged entry instead of losing the rest.
+      }
+    }
+
+    return known;
+  }
+
+  Future<void> _rememberProducts(List<Product> products) async {
+    final known = _readKnownMaps();
+
+    for (final product in products) {
+      // Remove, then add: a re-seen product moves to the end, so the
+      // front of the map always holds the least recently seen ones.
+      known.remove('${product.id}');
+      known['${product.id}'] = product.toMap();
+    }
+
+    // Dart maps keep insertion order, so keys.first is the oldest entry.
+    while (known.length > _maxKnownProducts) {
+      known.remove(known.keys.first);
+    }
+
+    await _box.put(StorageConstants.knownProductsKey, jsonEncode(known));
+  }
+
+  /// The index as raw maps, keyed by product ID as a string (JSON object
+  /// keys must be strings).
+  Map<String, dynamic> _readKnownMaps() {
+    final raw = _box.get(StorageConstants.knownProductsKey) as String?;
+    if (raw == null) return {};
+
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return {};
     }
   }
 }
