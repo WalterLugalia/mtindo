@@ -43,13 +43,15 @@ class ItemDetailScreen extends StatelessWidget {
                 product.name,
                 style: AppTextStyles.headlineLarge.copyWith(fontSize: 24),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                product.priceDisplay,
-                style: AppTextStyles.bodyLarge.copyWith(
-                  fontWeight: FontWeight.w600,
+                            if (product.priceDisplay.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  product.priceDisplay,
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
+              ],
               if (product.category.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.md),
                 const Divider(),

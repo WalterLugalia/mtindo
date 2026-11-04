@@ -16,20 +16,26 @@ class LeaderboardRepository {
       final tallies = await _service.getTopVoted();
       if (tallies.isEmpty) return [];
 
-      final products = await _products.findProducts(
+      final statuses = await _products.findProducts(
         tallies.map((tally) => tally.productId),
       );
 
       final items = <LeaderboardItem>[];
       for (var i = 0; i < tallies.length; i++) {
         final tally = tallies[i];
+        final status = statuses[tally.productId];
+
         items.add(
           LeaderboardItem(
             rank: i + 1,
             productId: tally.productId,
             voteCount: tally.voteCount,
-            // Null if this device has never loaded that product.
-            product: products[tally.productId],
+            product: status is ProductKnown ? status.product : null,
+            missingReason: switch (status) {
+              ProductKnown() => null,
+              ProductGone() => MissingReason.removed,
+              _ => MissingReason.unknown,
+            },
           ),
         );
       }

@@ -83,6 +83,17 @@ class ProductCacheService {
     return known;
   }
 
+    /// Saves one product into the known-products index, so the leaderboard
+  /// can describe it later without another API call.
+  Future<void> rememberProduct(Product product) async {
+    try {
+      await _rememberProducts([product]);
+    } catch (_) {
+      throw const CacheException('Could not save the product locally.');
+    }
+  }
+  
+
   Future<void> _rememberProducts(List<Product> products) async {
     final known = _readKnownMaps();
 
@@ -111,6 +122,31 @@ class ProductCacheService {
       return Map<String, dynamic>.from(jsonDecode(raw) as Map);
     } catch (_) {
       return {};
+    }
+  }
+
+    /// IDs ASOS has confirmed are gone. Remembering them stops the app
+  /// asking the API about the same removed product on every refresh.
+  Set<int> readRemovedProductIds() {
+    final raw = _box.get(StorageConstants.removedProductIdsKey) as String?;
+    if (raw == null) return {};
+
+    try {
+      return (jsonDecode(raw) as List).map((e) => e as int).toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> markProductRemoved(int productId) async {
+    try {
+      final removed = readRemovedProductIds()..add(productId);
+      await _box.put(
+        StorageConstants.removedProductIdsKey,
+        jsonEncode(removed.toList()),
+      );
+    } catch (_) {
+      throw const CacheException('Could not save the product status locally.');
     }
   }
 }
