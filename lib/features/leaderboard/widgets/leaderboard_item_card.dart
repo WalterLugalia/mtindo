@@ -58,17 +58,20 @@ class LeaderboardItemCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    product?.name ?? 'Details unavailable',
+                    product?.name ?? _missingTitle(),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.bodyLarge.copyWith(
                       fontWeight: FontWeight.w600,
+                      color: product == null
+                          ? AppColors.textSecondary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    product?.brandName ?? 'Not loaded on this device',
-                    maxLines: 1,
+                    product?.brandName ?? _missingSubtitle(),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.caption,
                   ),
@@ -97,5 +100,15 @@ class LeaderboardItemCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _missingTitle() {
+    return item.isRemoved ? 'No longer available' : 'Details unavailable';
+  }
+
+  String _missingSubtitle() {
+    return item.isRemoved
+        ? 'This item was removed from ASOS. Its votes still count.'
+        : 'Pull down to try loading it again';
   }
 }

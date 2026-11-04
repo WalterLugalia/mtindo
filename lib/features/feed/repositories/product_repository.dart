@@ -2,8 +2,31 @@ import '../../../core/errors/exceptions.dart';
 import '../../../core/errors/failure.dart';
 import '../models/feed_result.dart';
 import '../models/product.dart';
+import '../models/product_lookup.dart';
 import '../services/product_api_service.dart';
 import '../services/product_cache_service.dart';
+
+/// What the repository knows about one product ID.
+sealed class ProductStatus {
+  const ProductStatus();
+}
+
+/// Details are available (from the device or from the API).
+class ProductKnown extends ProductStatus {
+  final Product product;
+  const ProductKnown(this.product);
+}
+
+/// ASOS confirmed the product no longer exists.
+class ProductGone extends ProductStatus {
+  const ProductGone();
+}
+
+/// Not known, and we couldn't find out (offline, rate limit, or we hit
+/// the per-refresh lookup limit). Worth trying again later.
+class ProductUnknown extends ProductStatus {
+  const ProductUnknown();
+}
 
 /// Decides where product data comes from: the API when possible, the
 /// saved copy when not.
@@ -12,6 +35,11 @@ class ProductRepository {
   final ProductCacheService _cacheService;
 
   ProductRepository(this._apiService, this._cacheService);
+
+  /// How many products one refresh may look up by ID. The free RapidAPI
+  /// plan has a monthly quota and each lookup spends some of it, so the
+  /// rest wait for the next refresh.
+  static const int _maxLookupsPerRefresh = 5;
 
   Future<FeedResult> getProducts({required String categoryId}) async {
     try {
@@ -39,22 +67,54 @@ class ProductRepository {
     }
   }
 
-  /// Looks up products by ID among those this device has loaded before.
-  /// IDs this device has never seen are simply missing from the result.
+  /// Works out what we know about each product ID, in this order:
+  ///   1. details saved on this device  -> ProductKnown
+  ///   2. IDs ASOS already said are gone -> ProductGone
+  ///   3. ask the API by ID (up to the per-refresh limit):
+  ///        found   -> ProductKnown (and saved for next time)
+  ///        removed -> ProductGone  (and remembered)
+  ///        failed  -> ProductUnknown (not remembered, tried again later)
   ///
-  /// It is async even though today it only reads the local index. Callers
-  /// already await it, so a later phase can add an API lookup for the
-  /// missing IDs without changing any caller.
-  Future<Map<int, Product>> findProducts(Iterable<int> ids) async {
+  /// Every ID in the input appears in the result.
+  Future<Map<int, ProductStatus>> findProducts(Iterable<int> ids) async {
     final known = _cacheService.readKnownProducts();
-    final found = <int, Product>{};
+    final removed = _cacheService.readRemovedProductIds();
+    final result = <int, ProductStatus>{};
+    var lookups = 0;
 
     for (final id in ids) {
-      final product = known[id];
-      if (product != null) found[id] = product;
+      final saved = known[id];
+      if (saved != null) {
+        result[id] = ProductKnown(saved);
+        continue;
+      }
+
+      if (removed.contains(id)) {
+        result[id] = const ProductGone();
+        continue;
+      }
+
+      if (lookups >= _maxLookupsPerRefresh) {
+        result[id] = const ProductUnknown();
+        continue;
+      }
+
+      lookups++;
+      final lookup = await _apiService.getProductById(id);
+
+      switch (lookup) {
+        case ProductFound(:final product):
+          await _tryRemember(product);
+          result[id] = ProductKnown(product);
+        case ProductRemoved():
+          await _tryMarkRemoved(id);
+          result[id] = const ProductGone();
+        case ProductLookupFailed():
+          result[id] = const ProductUnknown();
+      }
     }
 
-    return found;
+    return result;
   }
 
   /// Saving is best effort. A cache that can't be written must never
@@ -65,6 +125,22 @@ class ProductRepository {
 
     try {
       await _cacheService.saveProducts(categoryId, products);
+    } on CacheException {
+      // Ignored on purpose.
+    }
+  }
+
+  Future<void> _tryRemember(Product product) async {
+    try {
+      await _cacheService.rememberProduct(product);
+    } on CacheException {
+      // Ignored on purpose: the product still shows this time.
+    }
+  }
+
+  Future<void> _tryMarkRemoved(int id) async {
+    try {
+      await _cacheService.markProductRemoved(id);
     } on CacheException {
       // Ignored on purpose.
     }
