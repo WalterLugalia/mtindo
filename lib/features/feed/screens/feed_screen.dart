@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/constants/route_constants.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error.dart';
 import '../../../shared/widgets/app_loader.dart';
-import '../../item_detail/screens/item_detail_screen.dart';
 import '../providers/feed_provider.dart';
 import '../widgets/product_card.dart';
-import '../../leaderboard/screens/leaderboard_screen.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -26,20 +26,7 @@ class FeedScreen extends ConsumerWidget {
         feedState.whenOrNull(data: (result) => result.isFromCache) ?? false;
 
     return Scaffold(
-      appBar: AppBar(
-  title: Text('Mtindo', style: AppTextStyles.brandWordmark),
-  actions: [
-    IconButton(
-      tooltip: 'Top voted',
-      icon: const Icon(Icons.emoji_events_outlined),
-      onPressed: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
-        );
-      },
-    ),
-  ],
-),
+      appBar: AppBar(title: Text('Mtindo', style: AppTextStyles.brandWordmark)),
       body: Column(
         children: [
           if (showCachedBanner) const _CachedBanner(),
@@ -51,6 +38,7 @@ class FeedScreen extends ConsumerWidget {
                 loading: () =>
                     const AppLoader(message: 'Loading the latest styles...'),
                 error: (error, stackTrace) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   children: [
                     SizedBox(
                       height: 400,
@@ -67,6 +55,7 @@ class FeedScreen extends ConsumerWidget {
 
                   if (products.isEmpty) {
                     return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       children: const [
                         SizedBox(
                           height: 400,
@@ -80,6 +69,7 @@ class FeedScreen extends ConsumerWidget {
                   }
 
                   return GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(AppSpacing.md),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
@@ -94,13 +84,10 @@ class FeedScreen extends ConsumerWidget {
                       return ProductCard(
                         product: product,
                         showOutdatedBadge: result.isStale,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ItemDetailScreen(product: product),
-                            ),
-                          );
-                        },
+                        onTap: () => context.push(
+                          RouteConstants.itemDetail(product.id),
+                          extra: product,
+                        ),
                       );
                     },
                   );
@@ -139,8 +126,10 @@ class _CachedBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Text('Showing cached styles while offline',
-              style: AppTextStyles.caption),
+          Text(
+            'Showing cached styles while offline',
+            style: AppTextStyles.caption,
+          ),
         ],
       ),
     );

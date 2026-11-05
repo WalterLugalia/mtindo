@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/constants/route_constants.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../feed/models/product.dart';
-import '../../item_detail/screens/item_detail_screen.dart';
 import '../providers/leaderboard_provider.dart';
 import '../widgets/leaderboard_item_card.dart';
 
@@ -89,9 +90,11 @@ class LeaderboardScreen extends ConsumerWidget {
     WidgetRef ref,
     Product product,
   ) async {
-    // Waits until the user comes back from the detail screen.
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ItemDetailScreen(product: product)),
+    // push() returns a Future that completes when the user comes back
+    // from the detail screen, so we can wait for it.
+    await context.push<void>(
+      RouteConstants.itemDetail(product.id),
+      extra: product,
     );
 
     // They may have voted or un-voted there, so reload the counts. The

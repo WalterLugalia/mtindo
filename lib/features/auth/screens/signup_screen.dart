@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
@@ -16,7 +17,6 @@ class SignupScreen extends ConsumerStatefulWidget {
 }
 
 class _SignupScreenState extends ConsumerState<SignupScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -52,8 +52,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasValue && !next.isLoading && previous?.isLoading == true) {
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
+        if (context.canPop()) {
+          context.pop();
         }
       }
     });
@@ -127,7 +127,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   children: [
                     Text('Already have an account? ', style: AppTextStyles.bodyMedium),
                     GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: () => context.pop(),
                       child: Text('Log in', style: AppTextStyles.linkAccent),
                     ),
                   ],
