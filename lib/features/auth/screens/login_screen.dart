@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/constants/route_constants.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../providers/auth_provider.dart';
-import 'signup_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -40,14 +41,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
 
-    // Navigate away once sign-in succeeds. authStateProvider (the
-    // session stream) will update automatically and the router
-    // (Phase 16) will redirect from here — for now we just pop
-    // back if this screen was pushed on top of something.
+    // Leave this screen once sign-in succeeds. canPop() guards against
+    // popping when there is nothing to go back to.
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasValue && !next.isLoading && previous?.isLoading == true) {
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
+        if (context.canPop()) {
+          context.pop();
         }
       }
     });
@@ -99,7 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {}, // Forgot password flow — later task
+                    onPressed: () {}, // Forgot password flow: a later task
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
                     child: Text('Forgot password?', style: AppTextStyles.linkAccent),
                   ),
@@ -118,11 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       Text('New to Mtindo? ', style: AppTextStyles.bodyMedium),
                       GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const SignupScreen()),
-                          );
-                        },
+                        onTap: () => context.push(RouteConstants.signup),
                         child: Text('Create account', style: AppTextStyles.linkAccent),
                       ),
                     ],
@@ -138,8 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   String _errorMessage(Object? error) {
     if (error == null) return 'Something went wrong.';
-    // Our Failure types override toString() to their message by default
-    // via the base class message field — fall back to raw error otherwise.
+    // Failure overrides toString() to return its message.
     return error.toString();
   }
 }

@@ -67,15 +67,7 @@ class ProductRepository {
     }
   }
 
-  /// Works out what we know about each product ID, in this order:
-  ///   1. details saved on this device  -> ProductKnown
-  ///   2. IDs ASOS already said are gone -> ProductGone
-  ///   3. ask the API by ID (up to the per-refresh limit):
-  ///        found   -> ProductKnown (and saved for next time)
-  ///        removed -> ProductGone  (and remembered)
-  ///        failed  -> ProductUnknown (not remembered, tried again later)
-  ///
-  /// Every ID in the input appears in the result.
+.
   Future<Map<int, ProductStatus>> findProducts(Iterable<int> ids) async {
     final known = _cacheService.readKnownProducts();
     final removed = _cacheService.readRemovedProductIds();

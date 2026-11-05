@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/constants/route_constants.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../auth/screens/login_screen.dart';
 import '../../voting/providers/vote_provider.dart';
 import '../../voting/repositories/vote_repository.dart';
 
@@ -71,11 +72,9 @@ class VoteSection extends ConsumerWidget {
     final user = ref.read(currentUserProvider);
 
     if (user == null) {
-      // Signed out: send them to log in. LoginScreen pops itself after a
-      // successful sign-in, and they land back on this item.
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+      // Signed out: send them to log in. The login screen pops itself
+      // after a successful sign-in, and they land back on this item.
+      context.push(RouteConstants.login);
       return;
     }
 
