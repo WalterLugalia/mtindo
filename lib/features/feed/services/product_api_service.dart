@@ -1,12 +1,13 @@
-// lib/features/feed/services/product_api_service.dart
-import '../../../core/network/api_client.dart';
+import 'package:flutter/foundation.dart';
+
 import '../../../core/constants/api_constants.dart';
+import '../../../core/network/api_client.dart';
 import '../models/product.dart';
 import '../models/product_lookup.dart';
 
-/// Fetches raw product data from the ASOS API (via RapidAPI) and
-/// converts it into Product models. No caching, no business logic,
-/// just the network call and JSON-to-model mapping.
+/// Fetches raw product data from the ASOS API (via RapidAPI) and converts
+/// it into Product models. No caching, no business logic, just the
+/// network call and JSON-to-model mapping.
 class ProductApiService {
   final ApiClient _apiClient;
 
@@ -31,16 +32,31 @@ class ProductApiService {
     // The category name appears once at the top level of the response
     // (e.g. "Shoes, Boots & Sneakers"), not inside each product.
     final category = (response['categoryName'] as String?) ?? '';
-
     final productsJson = (response['products'] as List?) ?? [];
-    return productsJson
-        .map(
-          (item) => Product.fromJson(
-            item as Map<String, dynamic>,
-            category: category,
-          ),
-        )
-        .toList();
+
+    final products = <Product>[];
+    final seenIds = <int>{};
+
+    for (final item in productsJson) {
+      try {
+        final product = Product.fromJson(
+          item as Map<String, dynamic>,
+          category: category,
+        );
+
+        // Set.add returns false when the ID is already in the set, so a
+        // repeated product is skipped and the first one wins.
+        if (seenIds.add(product.id)) products.add(product);
+      } catch (_) {
+        // One bad item must not blank the whole feed. This is `catch (_)`
+        // and not `on Exception`, because a wrong type or missing field
+        // throws a TypeError, which is an Error, and `on Exception` would
+        // not catch it.
+        debugPrint('Skipped a malformed product in the list response.');
+      }
+    }
+
+    return products;
   }
 
   /// ASOS's error code for "no product with this ID" (seen in the real
@@ -63,8 +79,8 @@ class ProductApiService {
         queryParameters: {'id': id},
       );
     } on Exception {
-      // No connection, timeout, rate limit, server error. We know
-      // nothing about the product.
+      // No connection, timeout, rate limit, server error. We know nothing
+      // about the product.
       return const ProductLookupFailed();
     }
 
