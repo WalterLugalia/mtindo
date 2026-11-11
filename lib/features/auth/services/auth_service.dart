@@ -4,7 +4,7 @@ import '../../../core/errors/exceptions.dart';
 import '../models/app_user.dart';
 
 /// Wraps Supabase Auth so the rest of the app never imports
-/// supabase_flutter directly — only this service does.
+/// supabase_flutter directly. Only this service does.
 class AuthService {
   final supabase.SupabaseClient _client;
 
@@ -28,8 +28,8 @@ class AuthService {
     required String email,
     required String password,
     required String name,
-  }) async {
-    try {
+  }) {
+    return _run(() async {
       final response = await _client.auth.signUp(
         email: email,
         password: password,
@@ -40,34 +40,77 @@ class AuthService {
         throw const AuthException('Sign up failed. Please try again.');
       }
       return _toAppUser(user);
-    } on supabase.AuthException catch (e) {
-      throw AuthException(_mapSupabaseAuthError(e));
-    }
+    });
   }
 
-  Future<AppUser> signIn({required String email, required String password}) async {
-    try {
-      final response = await _client.auth.signInWithPassword(email: email, password: password);
+  Future<AppUser> signIn({required String email, required String password}) {
+    return _run(() async {
+      final response = await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
       final user = response.user;
       if (user == null) {
-        throw const AuthException('Sign in failed. Please check your credentials.');
+        throw const AuthException(
+          'Sign in failed. Please check your credentials.',
+        );
       }
       return _toAppUser(user);
-    } on supabase.AuthException catch (e) {
-      throw AuthException(_mapSupabaseAuthError(e));
-    }
+    });
   }
 
-  Future<void> signOut() async {
-    try {
+  Future<void> signOut() {
+    return _run(() async {
       await _client.auth.signOut();
+    });
+  }
+
+  /// Runs a Supabase auth call and translates whatever goes wrong into
+  /// our own exception types. The order of the catch clauses matters:
+  /// Dart uses the first one that matches.
+  Future<T> _run<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on AuthException {
+      // Already one of ours (for example "Sign up failed"). Pass it on
+      // unchanged. Without this clause the last one below would catch it
+      // and wrongly call it a network problem.
+      rethrow;
     } on supabase.AuthException catch (e) {
+      // Supabase answered, or reported a failed request as an auth error.
+      if (_looksLikeNetworkProblem(e.message)) throw const NetworkException();
       throw AuthException(_mapSupabaseAuthError(e));
+    } on Exception {
+      // The request never completed and no auth error came back (no
+      // signal, DNS failure, timeout). Dart separates Exceptions
+      // (runtime events like this) from Errors (programming bugs), so a
+      // real bug still surfaces instead of being hidden here.
+      throw const NetworkException();
     }
   }
 
-  /// Converts a Supabase User into our own AppUser, reading the
-  /// name back out of user metadata set during signUp().
+  /// Depending on the library version, an offline sign-in arrives as an
+  /// auth error whose message contains the underlying network error, or
+  /// as a plain network exception. This recognizes the first kind by
+  /// its text, and the last clause in _run handles the second.
+  bool _looksLikeNetworkProblem(String message) {
+    final lower = message.toLowerCase();
+    const hints = [
+      'socketexception',
+      'failed host lookup',
+      'network is unreachable',
+      'clientexception',
+      'connection refused',
+      'connection closed',
+      'connection reset',
+      'timed out',
+      'timeout',
+    ];
+    return hints.any((hint) => lower.contains(hint));
+  }
+
+  /// Converts a Supabase User into our own AppUser, reading the name back
+  /// out of user metadata set during signUp().
   AppUser _toAppUser(supabase.User user) {
     return AppUser(
       id: user.id,
@@ -81,7 +124,8 @@ class AuthService {
     if (message.contains('invalid login credentials')) {
       return 'Incorrect email or password.';
     }
-    if (message.contains('already registered') || message.contains('user already exists')) {
+    if (message.contains('already registered') ||
+        message.contains('user already exists')) {
       return 'An account with this email already exists.';
     }
     if (message.contains('password') && message.contains('least')) {

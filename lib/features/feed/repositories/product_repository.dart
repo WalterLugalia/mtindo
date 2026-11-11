@@ -67,7 +67,7 @@ class ProductRepository {
     }
   }
 
-.
+
   Future<Map<int, ProductStatus>> findProducts(Iterable<int> ids) async {
     final known = _cacheService.readKnownProducts();
     final removed = _cacheService.readRemovedProductIds();

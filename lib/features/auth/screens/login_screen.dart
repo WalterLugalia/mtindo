@@ -6,6 +6,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/constants/route_constants.dart';
+import '../../../core/utils/validators.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../providers/auth_provider.dart';
@@ -30,7 +31,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _submit() {
+    // validate() runs every field's validator inside the Form, shows each
+    // error under its field, and returns true only if all of them pass.
     if (!_formKey.currentState!.validate()) return;
+
     ref.read(authControllerProvider.notifier).signIn(
           email: _emailController.text.trim(),
           password: _passwordController.text,
@@ -57,6 +61,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Form(
             key: _formKey,
+            // After the person has touched a field, keep re-checking it as
+            // they type, so an error disappears as soon as it is fixed.
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -75,6 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   hintText: 'you@example.com',
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  validator: Validators.email,
                 ),
                 const SizedBox(height: AppSpacing.md),
 
@@ -83,6 +91,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   hintText: 'Enter your password',
                   controller: _passwordController,
                   obscureText: true,
+                  // Only "not empty" at login. The length rule applies when
+                  // choosing a password, not when using an existing one.
+                  validator: (value) => Validators.notEmpty(value, 'password'),
                 ),
                 const SizedBox(height: AppSpacing.xs),
 
@@ -91,7 +102,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: Text(
                       _errorMessage(authState.error),
-                      style: const TextStyle(color: AppColors.error, fontSize: 13),
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
 
@@ -100,7 +114,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TextButton(
                     onPressed: () {}, // Forgot password flow: a later task
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Text('Forgot password?', style: AppTextStyles.linkAccent),
+                    child: Text(
+                      'Forgot password?',
+                      style: AppTextStyles.linkAccent,
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -118,7 +135,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text('New to Mtindo? ', style: AppTextStyles.bodyMedium),
                       GestureDetector(
                         onTap: () => context.push(RouteConstants.signup),
-                        child: Text('Create account', style: AppTextStyles.linkAccent),
+                        child: Text(
+                          'Create account',
+                          style: AppTextStyles.linkAccent,
+                        ),
                       ),
                     ],
                   ),
