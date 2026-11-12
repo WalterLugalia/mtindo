@@ -47,13 +47,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // Leave this screen once sign-in succeeds. canPop() guards against
     // popping when there is nothing to go back to.
-    ref.listen(authControllerProvider, (previous, next) {
-      if (next.hasValue && !next.isLoading && previous?.isLoading == true) {
-        if (context.canPop()) {
-          context.pop();
-        }
-      }
-    });
+    // ref.listen(authControllerProvider, (previous, next) {
+    //   if (next.hasValue && !next.isLoading && previous?.isLoading == true) {
+    //     if (context.canPop()) {
+    //       context.pop();
+    //     }
+    //   }
+    // });
 
     return Scaffold(
       body: SafeArea(

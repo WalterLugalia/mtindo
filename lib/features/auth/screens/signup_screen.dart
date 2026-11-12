@@ -49,13 +49,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
 
-    ref.listen(authControllerProvider, (previous, next) {
-      if (next.hasValue && !next.isLoading && previous?.isLoading == true) {
-        if (context.canPop()) {
-          context.pop();
-        }
-      }
-    });
+    // ref.listen(authControllerProvider, (previous, next) {
+    //   if (next.hasValue && !next.isLoading && previous?.isLoading == true) {
+    //     if (context.canPop()) {
+    //       context.pop();
+    //     }
+    //   }
+    // });
 
     return Scaffold(
       body: SafeArea(
