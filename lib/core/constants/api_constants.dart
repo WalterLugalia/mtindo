@@ -6,6 +6,7 @@ ApiConstants._();
 static String get baseUrl => 'https://${EnvConfig.rapidApiHost}';
 
 static const String productsList = '/products/v2/list';
+static const String productDetailV4 = '/products/v4/detail';
 static const String  productsDetails = '/products/v2/get-details';
 
 static Map<String, String> get defaultHeaders => {

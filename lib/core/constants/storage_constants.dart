@@ -9,4 +9,9 @@ class StorageConstants {
   static const String cacheTimestampKey = 'cache_timestamp';
 
   static const Duration cacheStaleAfter = Duration(hours: 6);
+
+  static const String knownProductsKey = 'known_products';
+
+  static const String removedProductIdsKey = 'removed_product_ids';
+  
 }
